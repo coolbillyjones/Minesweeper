@@ -34,9 +34,10 @@ struct Tile {
         } else if (mine)
         {
             overlay.setTexture(texturesMap.textures["mine"]);
+            std::cout << revealed << std::endl;
         } else
         {
-            numRevealed += 1;
+            numRevealed++;
             if (adjacent_mines > 0)
             {
                 std::string adjacent_mines_str = "number" + std::to_string(adjacent_mines);
@@ -46,8 +47,6 @@ struct Tile {
                 overlay.setTexture(texturesMap.textures["tile_revealed"]);
             }
         }
-
-
     }
 
     void resetTile(TextureManager& texturesMap)
@@ -69,6 +68,10 @@ struct Tile {
                 continue;
             }
             if (tile->revealed)
+            {
+                continue;
+            }
+            if (tile->flagged)
             {
                 continue;
             }

@@ -13,6 +13,48 @@ void setText(sf::Text &text, float x, float y){
     text.setPosition(sf::Vector2f(x, y));
 }
 
+void setCounter(int count, std::vector<sf::Sprite> &sprites, TextureManager& textureMap, int rows)
+{
+    std::string value;
+    if (count < 0)
+    {
+        value += '-';
+        count = -count;
+    }
+    value += std::to_string(count);
+
+    if (value.length() < 3)
+    {
+        if (value[0] == '-')
+        {
+            value.insert(1, "0");
+        } else
+        {
+            while (value.length() < 3)
+            {
+                value.insert(0, "0");
+            }
+        }
+    }// end making string
+
+    for (int i = 0; i < 3; i++)
+    {
+        int index = 0;
+        if (value[i] == '-')
+        {
+            index = 10;
+        } else
+        {
+            index = value[i] - '0';
+        }
+
+        sprites[i].setTexture(textureMap.textures["digits"]);
+        sprites[i].setTextureRect(sf::IntRect(index*21, 0, 21, 32));
+        sprites[i].setPosition(33 + i * 21, 32 * (rows + 0.5) + 16);
+    }
+}
+
+
 bool welcomeScreen(int columns, int rows) {
     int height = (rows * 32) + 100;
     int width = columns * 32;
@@ -94,8 +136,10 @@ bool welcomeScreen(int columns, int rows) {
 void gameScreen(int columns, int rows, int mines) {
     int height = (rows * 32) + 100;
     int width = columns * 32;
+    std::vector<sf::Sprite> counterSprites(3);
     sf::RenderWindow window(sf::VideoMode(width, height), "Game Window");
     Board board(rows, columns, mines);
+    setCounter(board.count, counterSprites, board.textureMap, rows);
 
     sf::Sprite debugButton;
     debugButton.setTexture(board.textureMap.textures["debug"]);
@@ -113,6 +157,10 @@ void gameScreen(int columns, int rows, int mines) {
     leaderboardButton.setTexture(board.textureMap.textures["leaderboard"]);
     leaderboardButton.setPosition((columns*32)-176, 32*(rows+0.5));
 
+    sf::Sprite counter;
+    counter.setTexture(board.textureMap.textures["digits"]);
+    counter.setPosition((columns*32)-16, 32*(rows+0.5));
+
 
     while(window.isOpen()) {
         sf::Event event;
@@ -120,8 +168,7 @@ void gameScreen(int columns, int rows, int mines) {
             if(event.type == sf::Event::Closed) {
                 window.close();
             }
-            std::cout << board.revealed << std::endl;
-            if (board.revealed == rows * columns - mines)
+            if (board.numRevealed == rows * columns - mines)
             {
                 board.win = true;
                 board.flagRemaining();
@@ -142,16 +189,15 @@ void gameScreen(int columns, int rows, int mines) {
 
                         } else if (clicked->mine)
                         {
-                            clicked->revealTile(board.textureMap, board.revealed);
+                            clicked->revealTile(board.textureMap, board.numRevealed);
                             board.revealAllMines();
                             happyFaceButton.setTexture(board.textureMap.textures["face_lose"]);
                         } else
                         {
-                            board.revealed += 1;
-                            clicked->revealTile(board.textureMap, board.revealed);
+                            clicked->revealTile(board.textureMap, board.numRevealed);
                             if (clicked->adjacent_mines == 0)
                             {
-                                clicked->revealAdjacents(board.textureMap, board.revealed);
+                                clicked->revealAdjacents(board.textureMap, board.numRevealed);
                             }
                         }
 
@@ -161,10 +207,14 @@ void gameScreen(int columns, int rows, int mines) {
                         {
                             clicked->flagged = false;
                             clicked->overlay.setTexture(board.textureMap.textures["tile_hidden"]);
+                            board.count += 1;
+                            setCounter(board.count, counterSprites, board.textureMap, rows);
                         } else
                         {
                             clicked->flagged = true;
-                            clicked->revealTile(board.textureMap, board.revealed);
+                            clicked->revealTile(board.textureMap, board.numRevealed);
+                            board.count -= 1;
+                            setCounter(board.count, counterSprites, board.textureMap, rows);
                         }
 
                     }
@@ -193,6 +243,10 @@ void gameScreen(int columns, int rows, int mines) {
         window.draw(happyFaceButton);
         window.draw(pauseButton);
         window.draw(leaderboardButton);
+        for (int i = 0; i < 3; i++)
+        {
+            window.draw(counterSprites[i]);
+        }
         window.display();
     } // end while
 

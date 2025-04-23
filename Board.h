@@ -10,7 +10,7 @@
 
 
 struct Board {
-    int columns, rows, mines, count, revealed;
+    int columns, rows, mines, count, numRevealed;
     bool win = false;
     TextureManager textureMap;
     sf::Vector2u tileSize;
@@ -22,7 +22,7 @@ struct Board {
         this->rows = rows;
         this->mines = mines;
         count = mines;
-        revealed = 0;
+        numRevealed = 0;
         tileSize = textureMap.textures["tile_hidden"].getSize();
         tiles.resize(rows, std::vector<Tile*>(columns, nullptr));
         for (int i = 0; i < rows; i++)
@@ -59,7 +59,7 @@ struct Board {
             }
         }
         count = mines;
-        revealed = 0;
+        numRevealed = 0;
         assignMines();
         findAdjacents();
     }
@@ -105,7 +105,7 @@ struct Board {
             {
                 if (tiles[i][j]->mine)
                 {
-                    tiles[i][j]->revealTile(textureMap, revealed);
+                    tiles[i][j]->revealTile(textureMap, numRevealed);
                 }
             }
         }
@@ -120,7 +120,7 @@ struct Board {
                 if (!tiles[i][j]->revealed)
                 {
                     tiles[i][j]->flagged = true;
-                    tiles[i][j]->revealTile(textureMap, revealed);
+                    tiles[i][j]->revealTile(textureMap, numRevealed);
                 }
             }
         }
