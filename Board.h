@@ -2,6 +2,7 @@
 // Created by Joseph on 4/22/2025.
 //
 #include <vector>
+#include <random>
 #include "Tile.H"
 #ifndef BOARD_H
 #define BOARD_H
@@ -9,7 +10,8 @@
 
 
 struct Board {
-    int columns, rows, mines;
+    int columns, rows, mines, count;
+    bool win = false;
     TextureManager textureMap;
     sf::Vector2u tileSize;
     std::vector<std::vector<Tile*>> tiles;
@@ -19,8 +21,19 @@ struct Board {
         this->columns = columns;
         this->rows = rows;
         this->mines = mines;
+        count = mines;
         tileSize = textureMap.textures["tile_hidden"].getSize();
         tiles.resize(rows, std::vector<Tile*>(columns, nullptr));
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                tiles[i][j] = new Tile(textureMap);
+                tiles[i][j]->sprite.setPosition(j * tileSize.x, i * tileSize.y);
+                tiles[i][j]->overlay.setPosition(j * tileSize.x, i * tileSize.y);
+            }
+        }
+        assignMines();
     }
 
     ~Board()
@@ -33,17 +46,88 @@ struct Board {
             }
         }
     }
+
+    void resetBoard()
+    {
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                tiles[i][j]->resetTile(textureMap);
+            }
+        }
+        count = mines;
+        assignMines();
+        findAdjacents();
+    }
     void drawBoard(sf::RenderWindow& window) {
         for (int i = 0; i < rows; i++)
         {
             for (int j = 0; j < columns; j++)
             {
-                if (tiles[i][j] == nullptr)
-                {
-                    tiles[i][j] = new Tile(textureMap);
-                    tiles[i][j]->sprite.setPosition(j * tileSize.x, i * tileSize.y);
-                }
                 window.draw(tiles[i][j]->sprite);
+                window.draw(tiles[i][j]->overlay);
+            }
+        }
+    }
+
+    void assignMines()
+    {
+        std::vector<std::pair<int, int>> coords;
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                coords.push_back(make_pair(i,j));
+            }
+        }
+
+        std::random_shuffle(coords.begin(), coords.end());
+        for (int k = 0; k < mines; k++)
+        {
+            auto [x, y] = coords[k];
+            tiles[x][y]->mine = true;
+        }
+    }
+
+    void revealAllMines()
+    {
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                if (tiles[i][j]->mine)
+                {
+                    tiles[i][j]->revealTile(textureMap);
+                }
+            }
+        }
+    }
+
+    void findAdjacents()
+    {
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                Tile* tile = tiles[i][j];
+                for (int k = -1; k <= 1; k++)
+                {
+                    for (int l = -1; l <= 1; l++)
+                    {
+                        if (k == 0 && l == 0)
+                        {
+                            continue;
+                        }
+
+                        int newR = i + k;
+                        int newC = j + l;
+                        if ((newR >= 0 && newR < rows) && (newC >= 0 && newC < columns))
+                        {
+                            tile->adjacent_tiles.push_back(tiles[newR][newC]);
+                        }
+                    }
+                }
             }
         }
     }
