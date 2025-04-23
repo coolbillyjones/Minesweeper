@@ -32,7 +32,11 @@ struct Tile {
         } else if (mine)
         {
             overlay.setTexture(texturesMap.textures["mine"]);
+        } else
+        {
+            overlay.setTexture(texturesMap.textures["tile_revealed"]);
         }
+
 
     }
 
@@ -41,6 +45,7 @@ struct Tile {
         flagged = false;
         revealed = false;
         mine = false;
+        adjacent_mines = 0;
         sprite.setTexture(texturesMap.textures["tile_hidden"]);
         overlay.setTexture(texturesMap.textures["tile_hidden"]);
     }

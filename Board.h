@@ -34,6 +34,7 @@ struct Board {
             }
         }
         assignMines();
+        findAdjacents();
     }
 
     ~Board()
@@ -66,7 +67,10 @@ struct Board {
             for (int j = 0; j < columns; j++)
             {
                 window.draw(tiles[i][j]->sprite);
-                window.draw(tiles[i][j]->overlay);
+                if (tiles[i][j]->revealed)
+                {
+                    window.draw(tiles[i][j]->overlay);
+                }
             }
         }
     }
@@ -87,6 +91,7 @@ struct Board {
         {
             auto [x, y] = coords[k];
             tiles[x][y]->mine = true;
+            tiles[x][y]->overlay.setTexture(textureMap.textures["mine"]);
         }
     }
 
