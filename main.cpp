@@ -120,6 +120,12 @@ void gameScreen(int columns, int rows, int mines) {
             if(event.type == sf::Event::Closed) {
                 window.close();
             }
+            std::cout << board.revealed << std::endl;
+            if (board.revealed == rows * columns - mines)
+            {
+                board.win = true;
+                board.flagRemaining();
+            }
             if (event.type == sf::Event::MouseButtonPressed)
             {
                 int x = event.mouseButton.x;
@@ -129,12 +135,40 @@ void gameScreen(int columns, int rows, int mines) {
                     int col = x / board.tileSize.x;
                     int row = y / board.tileSize.y;
                     Tile* clicked = board.tiles[row][col];
-                    clicked->revealTile(board.textureMap);
-                    if (clicked->mine)
+                    if (event.mouseButton.button == sf::Mouse::Left)
                     {
-                        board.revealAllMines();
-                        happyFaceButton.setTexture(board.textureMap.textures["face_lose"]);
+                        if (clicked->flagged)
+                        {
+
+                        } else if (clicked->mine)
+                        {
+                            clicked->revealTile(board.textureMap, board.revealed);
+                            board.revealAllMines();
+                            happyFaceButton.setTexture(board.textureMap.textures["face_lose"]);
+                        } else
+                        {
+                            board.revealed += 1;
+                            clicked->revealTile(board.textureMap, board.revealed);
+                            if (clicked->adjacent_mines == 0)
+                            {
+                                clicked->revealAdjacents(board.textureMap, board.revealed);
+                            }
+                        }
+
+                    } else if (event.mouseButton.button == sf::Mouse::Right)
+                    {
+                        if (clicked->flagged)
+                        {
+                            clicked->flagged = false;
+                            clicked->overlay.setTexture(board.textureMap.textures["tile_hidden"]);
+                        } else
+                        {
+                            clicked->flagged = true;
+                            clicked->revealTile(board.textureMap, board.revealed);
+                        }
+
                     }
+
                 } else
                 {
                     sf::Vector2f mousePos(x, y);
@@ -146,6 +180,7 @@ void gameScreen(int columns, int rows, int mines) {
                         } else if (happyFaceButton.getGlobalBounds().contains(mousePos))
                         {
                             board.resetBoard();
+                            happyFaceButton.setTexture(board.textureMap.textures["face_happy"]);
                         }
                     }
                 }//end else

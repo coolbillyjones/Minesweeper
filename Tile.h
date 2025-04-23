@@ -18,11 +18,13 @@ struct Tile {
     std::vector<Tile*> adjacent_tiles;
     Tile(TextureManager& texturesMap) {
         flagged = false;
+        mine = false;
         revealed = false;
+        adjacent_mines = 0;
         sprite.setTexture(texturesMap.textures["tile_hidden"]);
     }
 
-    void revealTile(TextureManager& texturesMap)
+    void revealTile(TextureManager& texturesMap, int& numRevealed)
     {
         revealed = true;
         sprite.setTexture(texturesMap.textures["tile_revealed"]);
@@ -34,7 +36,15 @@ struct Tile {
             overlay.setTexture(texturesMap.textures["mine"]);
         } else
         {
-            overlay.setTexture(texturesMap.textures["tile_revealed"]);
+            numRevealed += 1;
+            if (adjacent_mines > 0)
+            {
+                std::string adjacent_mines_str = "number" + std::to_string(adjacent_mines);
+                overlay.setTexture(texturesMap.textures[adjacent_mines_str]);
+            } else
+            {
+                overlay.setTexture(texturesMap.textures["tile_revealed"]);
+            }
         }
 
 
@@ -50,14 +60,28 @@ struct Tile {
         overlay.setTexture(texturesMap.textures["tile_hidden"]);
     }
 
-    void findAdjacentMines()
+    void revealAdjacents(TextureManager& texturesmap, int& numRevealed)
     {
-        for (int i = 0; i < adjacent_tiles.size(); i++)
+        for (Tile* tile : adjacent_tiles)
         {
-            if (adjacent_tiles[i]->mine)
+            if (tile->mine)
             {
-                adjacent_mines++;
+                continue;
             }
+            if (tile->revealed)
+            {
+                continue;
+            }
+            if (tile->adjacent_mines > 0)
+            {
+                tile->revealed = true;
+                tile->revealTile(texturesmap, numRevealed);
+                continue;
+            }
+            tile->revealed = true;
+            tile->revealTile(texturesmap, numRevealed);
+            tile->revealAdjacents(texturesmap, numRevealed);
+
         }
     }
 };
