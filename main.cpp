@@ -1,9 +1,22 @@
+#pragma once
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <SFML/Graphics.hpp>
+#include "Board.h"
 
-bool welcomeScreen() {
-    sf::RenderWindow window(sf::VideoMode(800, 800), "Welcome Window");
+
+void setText(sf::Text &text, float x, float y){
+    sf::FloatRect textRect = text.getLocalBounds();
+    text.setOrigin(textRect.left + textRect.width/2.0f,
+        textRect.top + textRect.height/2.0f);
+    text.setPosition(sf::Vector2f(x, y));
+}
+
+bool welcomeScreen(int columns, int rows) {
+    int height = (rows * 32) + 100;
+    int width = columns * 32;
+    sf::RenderWindow window(sf::VideoMode(width, height), "Welcome Window");
     sf::Font font;
     if (!font.loadFromFile("../files/font.ttf")) {
         return false;
@@ -16,28 +29,26 @@ bool welcomeScreen() {
     std::string name;
 
     topText.setFont(font);
-    topText.setString("Welcome to Minesweeper");
-    topText.setFillColor(sf::Color::Black);
-    topText.setCharacterSize(30);
-    topText.setPosition(200,25);
+    topText.setString("WELCOME TO MINESWEEPER");
+    topText.setStyle(sf::Text::Bold);
+    topText.setStyle(sf::Text::Underlined);
+    topText.setFillColor(sf::Color::White);
+    topText.setCharacterSize(24);
+    setText(topText, width / 2, height / 2 - 150);
 
     enterName.setFont(font);
     enterName.setString("Enter Your Name:");
-    enterName.setFillColor(sf::Color::Black);
-    enterName.setCharacterSize(30);
-    enterName.setPosition(250,75);
+    enterName.setStyle(sf::Text::Bold);
+    enterName.setFillColor(sf::Color::White);
+    enterName.setCharacterSize(20);
+    setText(enterName, width / 2, height / 2 - 75);
 
     nameText.setFont(font);
-    nameText.setString(name);
-    nameText.setFillColor(sf::Color::Black);
-    nameText.setCharacterSize(30);
-    nameText.setPosition(300,300);
+    nameText.setString("|");
+    nameText.setFillColor(sf::Color::Yellow);
+    nameText.setCharacterSize(18);
 
-    pressEnter.setFont(font);
-    pressEnter.setString("Press Enter to Continue");
-    pressEnter.setFillColor(sf::Color::Black);
-    pressEnter.setCharacterSize(30);
-    pressEnter.setPosition(200,500);
+
 
     while(window.isOpen()) {
     sf::Event event;
@@ -58,35 +69,33 @@ bool welcomeScreen() {
                     name.pop_back();
                 }
                 if (((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) && name.length() < 10) {
-                    name += c;
+                    if (name.length() == 0)
+                    {
+                        name += toupper(c);
+                    } else
+                    {
+                        name += tolower(c);
+                    }
+
                 }
-                nameText.setString(name);
+                nameText.setString(name + "|" );
             }
         }//end inner while
+        setText(nameText, width / 2, height / 2 - 45);
 
-        window.clear(sf::Color::White);
+        window.clear(sf::Color::Blue);
         window.draw(topText);
         window.draw(enterName);
         window.draw(nameText);
-        window.draw(pressEnter);
         window.display();
     } // end while
 }
 
-void gameScreen() {
-    sf::RenderWindow window(sf::VideoMode(800, 800), "Game Window");
-
-    sf::Font font;
-    if (!font.loadFromFile("../files/font.ttf")) {
-        return;
-    }
-    sf::Text topText;
-
-    topText.setFont(font);
-    topText.setString("Game Window");
-    topText.setFillColor(sf::Color::Black);
-    topText.setCharacterSize(30);
-    topText.setPosition(200,25);
+void gameScreen(int columns, int rows, int mines) {
+    int height = (rows * 32) + 100;
+    int width = columns * 32;
+    sf::RenderWindow window(sf::VideoMode(width, height), "Game Window");
+    Board board(rows, columns, mines);
 
     while(window.isOpen()) {
         sf::Event event;
@@ -95,9 +104,8 @@ void gameScreen() {
                 window.close();
             }
         }//end inner while
-
         window.clear(sf::Color::White);
-        window.draw(topText);
+        board.drawBoard(window);
         window.display();
     } // end while
 
@@ -105,9 +113,19 @@ void gameScreen() {
 
 
 int main() {
-    if (welcomeScreen())
+    std::ifstream config("../files/config.cfg");
+    if (!config.is_open())
     {
-        gameScreen();
+        std::cerr << "Error opening config file" << std::endl;
+        return 0;
+    }
+    int columns, rows, mines;
+    config >> columns >> rows >> mines;
+    config.close();
+
+    if (welcomeScreen(columns, rows))
+    {
+        gameScreen(columns, rows, mines);
     }
 
     return 0;
