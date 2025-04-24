@@ -34,7 +34,6 @@ struct Tile {
         } else if (mine)
         {
             overlay.setTexture(texturesMap.textures["mine"]);
-            std::cout << revealed << std::endl;
         } else
         {
             numRevealed++;

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <sstream>>
 #include <SFML/Graphics.hpp>
 #include "Board.h"
 
@@ -53,7 +54,6 @@ void setCounter(int count, std::vector<sf::Sprite> &sprites, TextureManager& tex
         sprites[i].setPosition(33 + i * 21, 32 * (rows + 0.5) + 16);
     }
 }
-
 
 bool welcomeScreen(int columns, int rows) {
     int height = (rows * 32) + 100;
@@ -133,9 +133,83 @@ bool welcomeScreen(int columns, int rows) {
     } // end while
 }
 
+void leaderBoard(int columns, int rows, bool addPlayer, bool& leaderBoardBool)
+{
+    int height = (rows * 16) + 50;
+    int width = (columns * 16);
+    sf::RenderWindow window(sf::VideoMode(width, height), "Leaderboard Window");
+    sf::Font font;
+    if (!font.loadFromFile("../files/font.ttf")) {
+        return;
+    }
+    std::vector<std::pair<std::string, string>> leaderBoard;
+
+    sf::Text title;
+    title.setFont(font);
+    title.setString("Leaderboard");
+    title.setStyle(sf::Text::Bold);
+    title.setStyle(sf::Text::Underlined);
+    title.setFillColor(sf::Color::White);
+    title.setCharacterSize(20);
+    setText(title, width / 2, height / 2 - 120);
+
+    std::string leaderBoardString;
+    sf::Text leaderBoardText;
+    leaderBoardText.setFont(font);
+    leaderBoardText.setStyle(sf::Text::Bold);
+    leaderBoardText.setFillColor(sf::Color::White);
+    leaderBoardText.setCharacterSize(18);
+    leaderBoardText.setPosition(40,80);
+
+    if (!addPlayer)
+    {
+        fstream leaderboardFile("../files/leaderboard.txt");
+        std::string line;
+        while (std::getline(leaderboardFile, line))
+        {
+            std::stringstream ss(line);
+            std::string time, name;
+
+            if (std::getline(ss, time, ',') && std::getline(ss, name))
+            {
+                if (!name.empty() && name[0] == ' ') name.erase(0,1);
+                leaderBoard.push_back({name, time});
+            }
+        }
+        leaderboardFile.close();
+        for (int i = 0; i < leaderBoard.size(); i++)
+        {
+            leaderBoardString += std::to_string(i+1) + ".\t" + leaderBoard[i].second + "\t" + leaderBoard[i].first + "\n\n";
+        }
+
+
+        leaderBoardText.setString(leaderBoardString);
+        setText(leaderBoardText, width / 2, height / 2 + 20);
+    }
+
+    while(window.isOpen())
+    {
+        sf::Event event;
+        while(window.pollEvent(event)) {
+            if(event.type == sf::Event::Closed) {
+                window.close();
+            }
+        }//end inner while
+        window.clear(sf::Color::Blue);
+        window.draw(title);
+        window.draw(leaderBoardText);
+        window.display();
+    }
+    leaderBoardBool = false;
+}
+
+
 void gameScreen(int columns, int rows, int mines) {
     int height = (rows * 32) + 100;
     int width = columns * 32;
+    bool leaderboard = false;
+    bool game = true;
+    bool pause = true;
     std::vector<sf::Sprite> counterSprites(3);
     sf::RenderWindow window(sf::VideoMode(width, height), "Game Window");
     Board board(rows, columns, mines);
@@ -172,17 +246,20 @@ void gameScreen(int columns, int rows, int mines) {
             {
                 board.win = true;
                 board.flagRemaining();
+                board.count = 0;
+                setCounter(board.count, counterSprites, board.textureMap, rows);
+                happyFaceButton.setTexture(board.textureMap.textures["face_win"]);
             }
-            if (event.type == sf::Event::MouseButtonPressed)
+            if (event.type == sf::Event::MouseButtonPressed && !leaderboard)
             {
                 int x = event.mouseButton.x;
                 int y = event.mouseButton.y;
-                if (y < rows * board.tileSize.y)
+                if (y < rows * board.tileSize.y && game)
                 {
                     int col = x / board.tileSize.x;
                     int row = y / board.tileSize.y;
                     Tile* clicked = board.tiles[row][col];
-                    if (event.mouseButton.button == sf::Mouse::Left)
+                    if (event.mouseButton.button == sf::Mouse::Left && board.win == false)
                     {
                         if (clicked->flagged)
                         {
@@ -192,6 +269,7 @@ void gameScreen(int columns, int rows, int mines) {
                             clicked->revealTile(board.textureMap, board.numRevealed);
                             board.revealAllMines();
                             happyFaceButton.setTexture(board.textureMap.textures["face_lose"]);
+                            game = false;
                         } else
                         {
                             clicked->revealTile(board.textureMap, board.numRevealed);
@@ -201,7 +279,7 @@ void gameScreen(int columns, int rows, int mines) {
                             }
                         }
 
-                    } else if (event.mouseButton.button == sf::Mouse::Right)
+                    } else if (event.mouseButton.button == sf::Mouse::Right && board.win == false)
                     {
                         if (clicked->flagged)
                         {
@@ -224,13 +302,29 @@ void gameScreen(int columns, int rows, int mines) {
                     sf::Vector2f mousePos(x, y);
                     if (event.mouseButton.button == sf::Mouse::Left)
                     {
-                        if (debugButton.getGlobalBounds().contains(mousePos))
+                        if (debugButton.getGlobalBounds().contains(mousePos) && board.win == false)
                         {
                             board.revealAllMines();
                         } else if (happyFaceButton.getGlobalBounds().contains(mousePos))
                         {
                             board.resetBoard();
+                            game = true;
+                            leaderboard = false;
                             happyFaceButton.setTexture(board.textureMap.textures["face_happy"]);
+                        } else if (leaderboardButton.getGlobalBounds().contains(mousePos))
+                        {
+                            leaderboard = true;
+                            leaderBoard(columns, rows, false, leaderboard);
+                        } else if (pauseButton.getGlobalBounds().contains(mousePos))
+                        {
+                            if (!pause)
+                            {
+                                pauseButton.setTexture(board.textureMap.textures["pause"]);
+                                board.assignReveal(pause);
+                            }
+                            pauseButton.setTexture(board.textureMap.textures["play"]);
+                            board.assignReveal(pause);
+                            pause = false;
                         }
                     }
                 }//end else
@@ -248,14 +342,19 @@ void gameScreen(int columns, int rows, int mines) {
             window.draw(counterSprites[i]);
         }
         window.display();
+
+        if (board.win && !leaderboard)
+        {
+            leaderboard = true;
+            board.win = false;
+            board.numRevealed = 0;
+            leaderBoard(columns, rows, true, leaderboard);
+        }
     } // end while
 
 }
 
-void leaderBoard()
-{
 
-}
 
 
 int main() {
@@ -273,8 +372,6 @@ int main() {
     {
         gameScreen(columns, rows, mines);
     }
-
-    leaderBoard();
 
     return 0;
 }

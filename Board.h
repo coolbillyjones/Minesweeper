@@ -60,6 +60,7 @@ struct Board {
         }
         count = mines;
         numRevealed = 0;
+        win = false;
         assignMines();
         findAdjacents();
     }
@@ -106,6 +107,23 @@ struct Board {
                 if (tiles[i][j]->mine)
                 {
                     tiles[i][j]->revealTile(textureMap, numRevealed);
+                }
+            }
+        }
+    }
+
+    void assignReveal(bool pause)
+    {
+        for (int i = 0; i < rows; i++)
+        {
+            for (int j = 0; j < columns; j++)
+            {
+                if (pause)
+                {
+                    tiles[i][j]->overlay.setTexture(textureMap.textures["tile_revealed"]);
+                } else
+                {
+                    tiles[i][j]->overlay.setTexture(textureMap.textures["tile_hidden"]);
                 }
             }
         }
